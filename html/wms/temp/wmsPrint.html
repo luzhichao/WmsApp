@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>条码打印</title>
+    <link rel="stylesheet" type="text/css" href="../../../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/aui.2.0.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/icons.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/bootstrap-table.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/custom.css">
+</head>
+
+<body>
+<div class="aui-tab" id="frame">
+    <div class="aui-tab-item aui-active">成品条码</div>
+    <div class="aui-tab-item">原材料条码</div>
+</div>
+<div id="aui-tab-1" class="tab-content-item app tab-content-item-active">
+    <form class="aui-content aui-margin-b-10 aui-margin-t-10">
+        <ul class="aui-list aui-form-list">
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">外部编码</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" id="tab1-extend-code" @keyup.enter="onEnterExtendCode"-->
+                               <!--v-model.trim="extendCode"-->
+                               <!--placeholder="输入外部编码(可选,用于成品查询)">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">扫码</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" id="tab1-scan-barcode" @keyup.enter="onEnter" v-model.trim="tab1ScanCode"
+                               placeholder="扫描箱码带出栈板码">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">栈板码</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="formData.palletCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">设备型号</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model="barCodeData.uda1c" readonly="readonly">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">设备名称</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model="barCodeData.uda1n" readonly="readonly">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">数量</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.qty" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">库位</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.workCellCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">批次号</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.lotCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">外部编码</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model="barCodeData.uda3" readonly="readonly">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">起始条码</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model.trim="barCodeData.uda2c">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">结束条码</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model.trim="barCodeData.uda2n">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">当前栈板</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model.trim="barCodeData.uda3c">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">总栈板</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model.trim="barCodeData.uda3n">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+        </ul>
+    </form>
+    <table id="bootstrap-tab-1"></table>
+    <footer class="aui-bar aui-bar-tab aui-row" id="footer-1">
+        <div class="aui-btn aui-col-xs-6 aui-btn-primary" @click="updateBarCode">更新条码</div>
+        <div class="aui-btn aui-col-xs-6 aui-btn-success" @click="printBarCode">条码打印</div>
+    </footer>
+</div>
+<div id="aui-tab-2" class="tab-content-item app">
+    <form class="aui-content aui-margin-b-10 aui-margin-t-10">
+        <ul class="aui-list aui-form-list">
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">扫码</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" id="tab2-scan-barcode" @keyup.enter="onEnter" v-model.trim="tab2ScanCode"
+                               placeholder="扫描原材料条码">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">条码</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.barCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">物料编码</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.mrlCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">物料名称</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.mrlName" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">供应商编码</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.supplierCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">数量</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.qty" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">原厂代码</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model.trim="barCodeData.barCodeUda4">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">模号</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model.trim="barCodeData.barCodeUda5">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">库位</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.workCellCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">批次号</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="barCodeData.lotCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">生产日期</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model.trim="barCodeData.uda5c" readonly="readonly">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+            <!--<li class="aui-list-item">-->
+                <!--<div class="aui-list-item-inner">-->
+                    <!--<div class="aui-list-item-label">送货日期</div>-->
+                    <!--<div class="aui-list-item-input">-->
+                        <!--<input type="text" v-model.trim="barCodeData.uda5n" readonly="readonly">-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</li>-->
+        </ul>
+    </form>
+    <table id="bootstrap-tab-2"></table>
+    <footer class="aui-bar aui-bar-tab aui-row" id="footer-2">
+        <div class="aui-btn aui-col-xs-6 aui-btn-primary" @click="updateBarCode">更新条码</div>
+        <div class="aui-btn aui-col-xs-6 aui-btn-success" @click="printBarCode">条码打印</div>
+    </footer>
+</div>
+</body>
+<script type="text/javascript" src="../../../script/api.js"></script>
+<script type="text/javascript" src="../../../script/aui-tab.js"></script>
+<script type="text/javascript" src="../../../script/aui-toast.js"></script>
+<script type="text/javascript" src="../../../script/aui-dialog.js"></script>
+<script type="text/javascript" src="../../../script/jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="../../../script/vue.min.js"></script>
+<script type="text/javascript" src="../../../script/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="../../../script/bootstrap-table-zh-CN.js"></script>
+<script type="text/javascript" src="../../../script/public/constant.js"></script>
+<script type="text/javascript" src="../../../script/public/utils.js"></script>
+<script type="text/javascript" src="../../../script/public/commons.js"></script>
+<script type="text/javascript">
+    /**
+     * TODO:
+     * 操作流程
+     *   *合托*:
+     *         1.扫描任意箱码带出栈板及所属的所有箱码
+     *         2.扫描需要合托的箱码
+     *         3.提交保存
+     *   *拆托*:
+     *
+     */
+    var dialog = new auiDialog({});
+    apiready = function () {
+        //1.初始化多tab结构
+        new auiTab({element: document.getElementById("frame")}, function (params) {
+            var index = params.index;
+            $('.tab-content-item').removeClass('tab-content-item-active');
+            $('#aui-tab-' + index).addClass('tab-content-item-active');
+        });
+    };
+
+    /*--------------vue1--------------*/
+    var vueData1 = {
+        tab1ScanCode: '',       //扫描-箱码带出栈码
+        // extendCode: '',
+        formData: {
+            palletCode: ''     //栈板码
+        },
+        barCodeData: {
+            // uda1c: '',
+            // uda1n: '',
+            qty: '',
+            workCellCode: '',
+            lotCode: '',
+            // uda3: '',
+            // uda2c: '',
+            // uda2n: '',
+            // uda3c: '',
+            // uda3n: ''
+        }
+    };
+    new Vue({
+        el: '#aui-tab-1',
+        data: vueData1,
+        methods: {
+            // onEnterExtendCode: function () {
+            //     if (this.extendCode) {
+            //         $("#tab1-scan-barcode").focus();
+            //     }
+            // },
+            //扫描箱码带出栈板码
+            onEnter: function () {
+                var barCode = $.trim(this.tab1ScanCode);
+                if (barCode) {
+                    //通过任意箱码获取对应的栈板码
+                    api.showProgress({
+                        style: 'default',
+                        animationType: 'fade',
+                        title: '努力加载中...',
+                        text: '请稍后...',
+                        modal: true
+                    });
+                    api.ajax({
+                        url: getUrl(OtherUrl.getParentCodeByBarCode),
+                        method: 'post',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        data: {
+                            values: {
+                                barCode: barCode,
+                                mrlType: 'prd'
+                                // extendCode: this.extendCode
+                            }
+                        }
+                    }, function (ret) {
+                        api.hideProgress();
+                        if (ret.errCode == 0) {
+                            //1.根据返回条码对象完善栈板相关信息
+                            vueData1.formData['palletCode'] = ret.data.barCode;
+                            var barCodeObj = vueData1.barCodeData;
+                            for (var key in barCodeObj) {
+                                vueData1.barCodeData[key] = ret.data[key];
+                            }
+                        } else {
+                            api.toast({msg: ret.msg, duration: 3000, location: 'middle'});
+                        }
+                    });
+                    this.tab1ScanCode = '';
+                }
+            },
+            updateBarCode: function () {
+                var barCode = $.trim(vueData1.formData.palletCode);
+                api.showProgress();
+                api.ajax({
+                    url: getUrl('padWmsController!updateBarCode.m'),
+                    method: 'post',
+                    timeout: 60,
+                    data: {
+                        values: {
+                            barCode: barCode,
+                            barCodeData: JSON.stringify(vueData1.barCodeData),
+                            mrlType: 'prd'
+                        }
+                    }
+                }, function (ret) {
+                    if (ret && ret.errCode === 0) {
+                        api.hideProgress();
+                        api.toast({msg: '更新成功! ', location: 'middle'});
+                    } else {
+                        api.hideProgress();
+                        api.alert({msg: ret.msg});
+                    }
+                });
+            },
+            printBarCode: function () {
+                var barCode = $.trim(vueData1.formData.palletCode);
+                // var siteCode = localStorage.getItem('siteCode');
+                // var printType = '';
+                // if (siteCode == '1001') {    //孝感-烽火
+                //     printType = 'FH';
+                // } else if (siteCode == '1002') {  //武汉-华为
+                //     printType = 'HW';
+                // }
+                printBarCode(barCode);
+            }
+        }
+    });
+
+
+    /*--------------vue2--------------*/
+    var vueData2 = {
+        tab2ScanCode: '',       //扫描-箱码带出栈码
+        barCodeData: {
+            barCode: '',
+            mrlCode: '',
+            mrlName: '',
+            supplierCode: '',      //供应商编码
+            // uda4n: '',      //供应商名称
+            qty: '',        //数量（可修改）
+            workCellCode: '',
+            // barCodeUda4: '',    //原厂代码（可修改）
+            // barCodeUda5: '',    //模号（可修改）
+            lotCode: '',
+            // uda5c: '',      //生产日期
+            // uda5n: ''       //送货日期
+        }
+    };
+    new Vue({
+        el: '#aui-tab-2',
+        data: vueData2,
+        methods: {
+            onEnter: function () {
+                var barCode = $.trim(this.tab2ScanCode);
+                if (barCode) {
+                    api.showProgress({
+                        style: 'default',
+                        animationType: 'fade',
+                        title: '努力加载中...',
+                        text: '请稍后...',
+                        modal: true
+                    });
+                    api.ajax({
+                        url: getUrl(GetUrl.barCode),
+                        method: 'post',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        data: {
+                            values: {
+                                barCode: barCode
+                            }
+                        }
+                    }, function (ret) {
+                        api.hideProgress();
+                        if (ret.errCode == 0) {
+                            var barCodeObj = vueData2.barCodeData;
+                            for (var key in barCodeObj) {
+                                vueData2.barCodeData[key] = ret.data[key];
+                            }
+                            var barCodeObj2 = loadBarCodeInfoBySplit(barCode);   //解析加载
+                            vueData2.barCodeData.supplierCode = barCodeObj2.supplierCode;
+                            // vueData2.barCodeData.uda5c = barCodeObj2.uda2;
+                            // vueData2.barCodeData.uda5n = barCodeObj2.supplyDate;
+                        } else {
+                            api.toast({msg: ret.msg, duration: 3000, location: 'middle'});
+                        }
+                    });
+                    this.tab2ScanCode = '';
+                }
+            },
+            //打印条码
+            updateBarCode: function () {
+                var barCode = $.trim(vueData2.barCodeData.barCode);
+                api.showProgress();
+                api.ajax({
+                    url: getUrl('padWmsController!updateBarCode.m'),
+                    method: 'post',
+                    timeout: 60,
+                    data: {
+                        values: {
+                            barCode: barCode,
+                            mrlType: 'mrl',
+                            barCodeData: JSON.stringify(vueData2.barCodeData)
+                        }
+                    }
+                }, function (ret) {
+                    if (ret && ret.errCode === 0) {
+                        api.hideProgress();
+                        api.toast({msg: '更新成功! ', location: 'middle'});
+                    } else {
+                        api.hideProgress();
+                        api.alert({msg: ret.msg});
+                    }
+                });
+            },
+            printBarCode: function () {
+                var barCode = $.trim(vueData2.barCodeData.barCode);
+                // var siteCode = localStorage.getItem('siteCode');
+                // var printType = '';
+                // if (siteCode == '1001') {    //孝感-烽火
+                //     printType = 'FH';
+                // } else if (siteCode == '1002') {  //武汉-华为
+                //     printType = 'HW';
+                // }
+                printBarCode(barCode);
+            }
+        }
+    });
+
+</script>
+
+</html>

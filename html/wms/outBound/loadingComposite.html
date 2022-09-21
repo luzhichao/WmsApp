@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>装车复核</title>
+    <link rel="stylesheet" type="text/css" href="../../../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/aui.2.0.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/icons.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/bootstrap-table.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/custom.css">
+</head>
+
+<body>
+<div id="aui-tab-1" class="tab-content-item app tab-content-item-active">
+    <form class="aui-content aui-margin-b-10 aui-margin-t-10">
+        <ul class="aui-list aui-form-list">
+          <li class="aui-list-item" @click="closePlate">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-label">承运人</div>
+                  <div class="aui-list-item-input">
+                      <input type="text" v-model.trim="deliveryman" placeholder="请输入承运人">
+                  </div>
+              </div>
+          </li>
+          <li class="aui-list-item aui-margin-b-10">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-label">车牌号</div>
+                  <div class="aui-list-item-input">
+                      <input type="text" v-model.trim="licencePlate" placeholder="请输入车牌号" readonly="readonly" @click="wakeUpKeyBoard">
+                  </div>
+              </div>
+          </li>
+          <li class="aui-list-item" @click="closePlate">
+              <div class="aui-list-item-inner">
+                <div class="aui-list-item-label">托盘条码</div>
+                <div class="aui-list-item-input">
+                    <input id="tab1-scan-barcode1" type="text" @keyup.enter="onEnterPBarCode"
+                           v-model.trim="tab1ScanCode"
+                           placeholder="扫描容器条码">
+                </div>
+              </div>
+          </li>
+          <li class="aui-list-item aui-margin-b-10" @click="closePlate">
+              <div class="aui-list-item-inner">
+                  <div class="aui-list-item-label">收货方:</div>
+                  <div class="aui-list-item-input">
+                      <input type="text" v-model.trim="consignee" readonly="readonly">
+                  </div>
+              </div>
+          </li>
+        </ul>
+    </form>
+    <table id="bootstrap-tab-1" @click="closePlate"></table>
+    <footer class="aui-bar aui-bar-tab aui-row" id="footer-1">
+        <div class="aui-btn aui-col-xs-12 aui-btn-primary" @click="doSubmit">提交</div>
+    </footer>
+</div>
+</body>
+<script type="text/javascript" src="../../../script/api.js"></script>
+<script type="text/javascript" src="../../../script/aui-tab.js"></script>
+<script type="text/javascript" src="../../../script/aui-toast.js"></script>
+<script type="text/javascript" src="../../../script/aui-dialog.js"></script>
+<script type="text/javascript" src="../../../script/jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="../../../script/vue.min.js"></script>
+<script type="text/javascript" src="../../../script/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="../../../script/bootstrap-table-zh-CN.js"></script>
+<script type="text/javascript" src="../../../script/public/constant.js"></script>
+<script type="text/javascript" src="../../../script/public/utils.js"></script>
+<script type="text/javascript" src="../../../script/public/commons.js"></script>
+<script type="text/javascript">
+    /**
+     * 页面配置参数
+     */
+    var pageConfig = {
+        isConfirmMaxBoxNo: true,        //是否弹框确认栈板包含的最大箱数
+        maximumBoxNo: 30                //默认一个栈板所能包含的最大箱数
+    };
+
+    var dialog = new auiDialog({});
+    var tableField1 = [
+        {name:'rowNum',title:'行号'},
+        {name:'detailId',title:'明细id',visible:false},
+        {name:"taskCode",title:"出库单号",visible:false},
+        {name:'ctBarcodeCode',title:"容器编码"},
+        {name:"mrlName",title:"物料名称"},
+        {name:"mrlCode",title:"物料编码",visible:false},
+        {name:'qty',title:'数量'},
+        {name:'lotCode',title:'批次码'},
+        {name:'sn',title:"序列号"},
+        {name:'orderWaveRelGid',title:"orderWaveRelGid",visible:false},
+        {name:'sourceDetailGid',title:"sourceDetailGid",visible:false}
+    ];
+
+    apiready = function () {
+        $('#tab1-scan-barcode1').focus();
+        var data = vueData;
+        api.addEventListener({
+            name: 'triggerPlate'
+        }, function(ret, err){
+            if( ret ){
+              var str = data.licencePlate + ret.value.plate;
+              if(str.length > 8){
+                api.toast({msg: "最多输入八位车牌号!", duration: 3000, location: 'middle'});
+              }else {
+                app.$set(data,'licencePlate',str);
+              }
+            }
+        });
+
+        api.addEventListener({
+            name: 'deletePlate'
+        }, function(ret, err){
+            if( ret ){
+              data.licencePlate = data.licencePlate.substring(0,(data.licencePlate.length - 1))
+            }
+        });
+        //2.初始化表格
+        initTable(1, tableField1);
+    };
+
+    /*--------------vue1--------------*/
+    var vueData = {
+        licencePlate:'',
+        tab1ScanCode: '',//扫描-托盘码
+        consignee:"",//收货人
+        deliveryman:"",//送货人
+        loadingTime:"",//装车时间
+        taskCodes:[],//出库单号集合
+    };
+    var app = new Vue({
+        el: '#aui-tab-1',
+        data: vueData,
+        methods: {
+          //扫描托盘条码获取出库任务单信息
+          onEnterPBarCode: function () {
+            if(vueData.deliveryman == "" || vueData.licencePlate == "" || vueData.licencePlate.length < 7){
+              return api.toast({msg: '请填写车牌号/承运人等信息', duration: 3000, location: 'middle'});
+            }
+            if($("#bootstrap-tab-1").bootstrapTable('getData').length > 0){
+              dialog.alert({
+                  title: "是否覆盖当前数据",
+                  buttons: ['取消', '确定']
+              }, function (ret) {
+                  if (ret.buttonIndex === 2) {
+                    $("#bootstrap-tab-1").bootstrapTable('removeAll');
+                    app.getData();
+                  }
+              })
+            }else {
+              app.getData();
+            }
+          },
+          getData(){
+            var barCode = vueData.tab1ScanCode;
+            api.showProgress({
+                style: 'default',
+                animationType: 'fade',
+                title: '努力加载中...',
+                text: '请稍后...',
+                modal: true
+            });
+            $.ajax({
+                type: "POST",
+                url: getUrl('padWmsController!getOutTaskDetailbyCtBarcode.m'),
+                dataType: "json",
+                data: {
+                  ctBarcode: barCode
+                },
+                async: false,
+                success: function (res) {
+                  console.log(JSON.stringify(res));
+                    if (res.errCode === 0 && res.data.length != 0) {
+                      vueData.taskCodes = res.data;
+                      console.log(JSON.stringify(res.data))
+                      var date = new Date();
+                      var year = date.getFullYear();
+                      var month = date.getMonth()+1;
+                      var day = date.getDate();
+                      var hour = date.getHours();
+                      var minute = date.getMinutes();
+                      var second = date.getSeconds();
+                      vueData.loadingTime = year+'-'+month+'-'+day+ ' '+hour+':'+minute+':'+second;
+                      vueData.consignee = vueData.taskCodes[0].destination;
+                      for (var a = vueData.taskCodes.length - 1; a > -1; a--) {
+                          insertDateAtTable(1, 'prepend', [{
+                            rowNum:a+1,
+                            taskCode:vueData.taskCodes[a].taskCode,
+                            qty:vueData.taskCodes[a].qty,
+                            detailId:vueData.taskCodes[a].detailId,
+                            mrlName:vueData.taskCodes[a].mrlName,
+                            mrlCode:vueData.taskCodes[a].mrlCode,
+                            lotCode:vueData.taskCodes[a].lotCode,
+                            ctBarcodeCode:barCode,
+                            sn:vueData.taskCodes[a].sn,
+                            orderWaveRelGid:vueData.taskCodes[a].orderWaveRelGid,
+                            sourceDetailGid:vueData.taskCodes[a].sourceDetailGid
+                          }]);
+                      }
+                    } else {
+                        api.hideProgress();
+                        api.toast({msg: res.msg, duration: 3000, location: 'middle'});
+                    }
+                },
+                error: function (e) {
+                    api.hideProgress();
+                }
+
+            });
+            vueData.tab1ScanCode = "";
+            api.hideProgress();
+          },
+          wakeUpKeyBoard(){
+            $('#footer-1').load("../../comm/licensePlate.html");
+          },
+          //提交
+          doSubmit: function () {
+              var tableData = $('#bootstrap-tab-1').bootstrapTable('getData');
+              if(tableData.length == 0){
+                return api.toast({msg: '暂无可提交内容', duration: 3000, location: 'middle'});
+              }
+              api.showProgress({
+                  style: 'default',
+                  animationType: 'fade',
+                  title: '努力加载中...',
+                  text: '请稍后...',
+                  modal: true
+              });
+              $.ajax({
+                  type: "POST",
+                  url: getUrl('padWmsController!sendOutBill.m'),
+                  dataType: "json",
+                  data: {
+                    detailsString:JSON.stringify(tableData),
+                    workCenterGid: localStorage.getItem('workCenterGid'),
+                    carCode: vueData.licencePlate,
+                    carrier: vueData.deliveryman
+                  },
+                  async: false,
+                  success: function (res) {
+                    if (res.errCode === 0) {
+                      api.toast({msg: '操作成功！', duration: 3000, location: 'middle'});
+                      $('#bootstrap-tab-1').bootstrapTable('removeAll');
+                      vueData.consignee = "";
+                      vueData.loadingTime = "";
+                      vueData.taskCodes = "";
+                    }else {
+                      api.toast({msg: res.msg, duration: 3000, location: 'middle'});
+                    }
+                    api.hideProgress();
+                  },
+                  error: function (e) {
+                      api.hideProgress();
+                  }
+              });
+          },
+          closePlate(){
+            api.sendEvent({
+                name:'closePlate'
+            });
+            if($('.aui-col-xs-12').length == 0){
+              $('#footer-1').append('<div class="aui-btn aui-col-xs-12 aui-btn-primary" @click="doSubmit">提交</div>');
+              $('.aui-col-xs-12').on('click',this.doSubmit);
+            }
+          }
+        }
+    });
+</script>
+
+</html>

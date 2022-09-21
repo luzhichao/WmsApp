@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0" />
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>托拣</title>
+    <link rel="stylesheet" type="text/css" href="../../../css/api.css" />
+    <link rel="stylesheet" type="text/css" href="../../../css/aui.2.0.css" />
+    <link rel="stylesheet" type="text/css" href="../../../css/icons.css" />
+    <link rel="stylesheet" type="text/css" href="../../../css/bootstrap-table.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../../css/custom.css">
+    <link rel="stylesheet" type="text/css" href="../../../css/outBound.css">
+    <style>
+        body {
+            background-color: rgb(245, 245, 245);
+        }
+
+        #easyLayout {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            height: 100vh;
+        }
+
+        .dataIsNone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-50%);
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: rgb(139, 134, 130);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="easyLayout">
+        <div class="shipment-easyLayout shipment-easyLayout-active" id="shipment-easyLayout1">
+            <table id="bootstrap-tab"></table>
+        </div>
+        <footer class="aui-bar aui-bar-tab aui-row" id="footer-1" v-if="vueData.itemShow == 1">
+            <div class="aui-btn aui-col-xs-12 aui-btn-success" @click="nextStep">开始作业</div>
+        </footer>
+
+
+        <div class="shipment-easyLayout" id="shipment-easyLayout2">
+            <form class="aui-content aui-margin-b-10 aui-margin-t-10" id="formSection">
+                <ul class="aui-list aui-form-list">
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">来源库位</div>
+                            <div class="aui-list-item-input">
+                                <input type="text" v-model.trim="operation.showObj.sourceWorkCellCode" readonly="readonly">
+                            </div>
+                        </div>
+                    </li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">容器编码</div>
+                            <div class="aui-list-item-input">
+                                <input type="text" @keyup.enter="onEnterBarCode" id="tab1-scan-barcode2" v-model.trim="vueData.operation.ctBarCode" placeholder="扫描容器编码">
+                            </div>
+                        </div>
+                    </li>
+                    <li class="aui-list-item">
+                        <div class="aui-list-item-inner">
+                            <div class="aui-list-item-label">目标库位</div>
+                            <div class="aui-list-item-input">
+                                <input type="text" v-model="operation.showObj.targetWorkCellCode" readonly="readonly">
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </form>
+            <footer class="aui-bar aui-bar-tab aui-row" id="footer-2" v-if="vueData.itemShow == '2'">
+                <div class="manyBtn">
+                    <div type="button" @click="skipCurrent">跳过</div>
+                    <div type="button" class="marginLeft" @click="submitCurrent">提交</div>
+                </div>
+            </footer>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../../../script/api.js"></script>
+<script type="text/javascript" src="../../../script/aui-tab.js"></script>
+<script type="text/javascript" src="../../../script/aui-toast.js"></script>
+<script type="text/javascript" src="../../../script/aui-dialog.js"></script>
+<script type="text/javascript" src="../../../script/jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="../../../script/vue.min.js"></script>
+<script type="text/javascript" src="../../../script/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="../../../script/bootstrap-table-zh-CN.js"></script>
+<script type="text/javascript" src="../../../script/public/constant.js"></script>
+<script type="text/javascript" src="../../../script/public/utils.js"></script>
+<script type="text/javascript" src="../../../script/public/commons.js"></script>
+<script type="text/javascript">
+    var toast = new auiToast({});
+    var dialog = new auiDialog({});
+    var tableField1 = [{
+        name: '',
+        title: '序号',
+        width: 60,
+        formatter: function(value, row, index) {
+            return index + 1;
+        }
+    }, {
+        name: 'ctBarCode',
+        title: "待转移容器"
+    }, {
+        name: "workCellCode",
+        title: '来源库位'
+    }, {
+        name: 'targetWorkCellCode',
+        title: '目标库位'
+    }];
+    apiready = function() {
+        api.parseTapmode();
+        //初始化table
+        initTable(0, tableField1);
+        //加载托拣任务
+        api.showProgress({
+            style: 'default',
+            animationType: 'fade',
+            title: '努力加载中...',
+            text: '请稍后...',
+            modal: true
+        });
+        $.ajax({
+            type: "POST",
+            url: getUrl('padWmsController!getCtPickTask.m'),
+            dataType: "json",
+            data: {
+                workCenterCode: localStorage.getItem('workCenterCode')
+            },
+            async: false,
+            success: function(res) {
+                api.hideProgress();
+                if (res.errCode == 0) {
+                    vueData.pickTaskList = res.data;
+                    // console.log(JSON.stringify(vueData.pickTaskList));
+                    for (var i = vueData.pickTaskList.length - 1; i > -1; i--) {
+                        var obj = vueData.pickTaskList[i];
+                        insertDateAtTable(0, 'prepend', [{
+                            ctBarCode: obj.sourceCtBarcodeCode,
+                            workCellCode: obj.sourceWorkCellCode,
+                            targetWorkCellCode: obj.targetWorkCellCode
+                        }]);
+                    }
+                } else {
+                    api.toast({
+                        msg: res.msg,
+                        duration: 3000,
+                        location: 'middle'
+                    });
+                }
+            },
+            error: function(e) {
+                api.hideProgress();
+            }
+        });
+    };
+    var vueData = {
+        itemShow: 1, //控制显示隐藏
+        pickTaskList: [], //托拣任务List
+
+        operation: {
+            showObj: {},  //当前操作的托拣任务
+            ctBarCode: "", //当前扫描的容器
+        }
+    };
+    var app = new Vue({
+        el: '#easyLayout',
+        data: vueData,
+        methods: {
+            /**
+             * 开始作业 下一步
+             */
+            nextStep: function() {
+                if (vueData.itemShow == 1) {
+                    vueData.operation.showObj = vueData.pickTaskList[0];
+                }
+                vueData.itemShow += 1;
+                $('.shipment-easyLayout').removeClass('shipment-easyLayout-active');
+                $('#shipment-easyLayout' + vueData.itemShow).addClass('shipment-easyLayout-active');
+            },
+            /**
+             * 扫描待转移容器
+             */
+            onEnterBarCode: function() {
+                var barCode = vueData.operation.ctBarCode;
+                var retObj = getCtUwmInfoByCtBarCode(barCode);
+                console.log(JSON.stringify(retObj));
+                if (JSON.stringify(retObj) != "{}") {
+                    if (retObj.workCellCode != vueData.operation.showObj.sourceWorkCellCode) {
+                        $("#tab1-scan-barcode2").focus();
+                        vueData.operation.ctBarCode = "";
+                        return api.toast({
+                            msg: "来源库位:【"+ vueData.operation.showObj.sourceWorkCellCode +"】与托盘扫描所属库位:【"+ retObj.workCellCode +"】不一致，请重新扫描!",
+                            duration: 3000,
+                            location: 'middle'
+                        });
+                    } else {
+                        api.toast({
+                            msg: "待转容器扫描成功，请将容器转移到目标库位后提交!",
+                            duration: 3000,
+                            location: 'middle'
+                        });
+                    }
+                }
+            },
+            /**
+             * 跳过当前托拣任务
+             */
+            skipCurrent: function() {
+                //判断是否已全部拣完
+                var idx = 0;
+                for (var i = 0; i < vueData.pickTaskList.length; i++) {
+                    if (vueData.operation.showObj.sourceWorkCellCode == vueData.pickTaskList[i].sourceWorkCellCode) {
+                        vueData.operation.ctBarCode = "";
+                        idx = i;
+                    }
+                }
+                if (idx < (vueData.pickTaskList.length - 1)) {
+                    vueData.operation.showObj = vueData.pickTaskList[idx + 1];
+                } else if (idx == (vueData.pickTaskList.length - 1)) {
+                    api.toast({
+                        msg: "本次托拣已结束！",
+                        duration: 3000,
+                        location: 'middle'
+                    });
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 2000)
+                    return
+                }
+            },
+            /**
+             * 提交当前托拣任务
+             */
+            submitCurrent: function() {
+                if (vueData.operation.ctBarCode == "") {
+                    return api.toast({
+                        msg: "请扫描托盘码后再次提交",
+                        duration: 3000,
+                        location: 'middle'
+                    });
+                }
+                var arr = [{
+                    ctBarcode: vueData.operation.ctBarCode
+                }]
+                api.showProgress({
+                    style: 'default',
+                    animationType: 'fade',
+                    title: '努力加载中...',
+                    text: '请稍后...',
+                    modal: true
+                });
+                $.ajax({
+                    type: "POST",
+                    url: getUrl('padWmsController!ctPickCreateRecord.m'),
+                    dataType: "json",
+                    data: {
+                        workCenterCode: localStorage.getItem("workCenterCode"),
+                        pickMrlInfo: JSON.stringify(arr)
+                    },
+                    async: false,
+                    success: function(res) {
+                        if (res.errCode === 0) {
+                            vueData.operation.ctBarCode = "";
+                            api.toast({
+                                msg: "提交成功",
+                                duration: 3000,
+                                location: 'middle'
+                            });
+                            app.skipCurrent();
+                        } else {
+                            api.toast({
+                                msg: res.msg,
+                                duration: 3000,
+                                location: 'middle'
+                            });
+                        }
+                    },
+                    error: function(e) {
+                        console.log(JSON.stringify(e));
+                    }
+
+                });
+                api.hideProgress();
+            },
+        }
+    });
+</script>
+
+</html>

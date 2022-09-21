@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>选择打印机IP</title>
+    <link rel="stylesheet" type="text/css" href="../../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../../css/aui.2.0.css"/>
+    <link rel="stylesheet" type="text/css" href="../../css/icons.css"/>
+    <style>
+        .aui-btn-info {
+            width: 100%;
+            line-height: 2.5rem;
+        }
+    </style>
+</head>
+
+<body>
+<header class="aui-bar aui-bar-nav" id="aui-header" style="background-color: #03a9f4">
+    <a class="aui-btn aui-btn-epichust aui-pull-left" tapmode onclick="api.closeWin();">
+        <span class="aui-iconfont aui-icon-left"></span> </a>
+    <div class="aui-title">设置打印机</div>
+</header>
+
+<section class="aui-content-padded" id="vue-app">
+    <ul class="aui-list aui-form-list">
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label" style="width: 25%;">请选择蓝牙</div>
+                <select @change="getPrint($event)" id="selectUuid">
+                    <option v-for="(item,index) in printItems"
+                            :value="item.uuid" :key="item.uuid">{{item.name}}
+                    </option>
+                </select>
+            </div>
+        </li>
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label" style="width: 25%;">绑定蓝牙名称</div>
+                <div class="aui-list-item-input">
+                    <input type="text" name="printName" v-model="printName" readonly="readonly">
+                </div>
+            </div>
+        </li>
+        <!-- <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label" style="width: 35%;">IP</div>
+                <div class="aui-list-item-input">
+                    <input type="text" name="uuid" v-model="uuid" readonly="readonly">
+                </div>
+            </div>
+        </li> -->
+    </ul>
+</section>
+
+<!-- <section class="aui-content-padded" id="vue-app-2">
+    <ul class="aui-list aui-form-list">
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label" style="width: 25%;">选择模板</div>
+                <select @change="getTemplet($event)">
+                    <option v-for="(item,index) in templetItems"
+                            :value="item.val + '|||' + item.code + '|||' + item.name">{{item.name}}
+                    </option>
+                </select>
+            </div>
+        </li>
+        <li class="aui-list-item aui-hide">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label" style="width: 35%;">Gid</div>
+                <div class="aui-list-item-input">
+                    <input type="text" name="templetGid" v-model="templetGid" readonly="readonly">
+                </div>
+            </div>
+        </li>
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label" style="width: 20%;">名称</div>
+                <div class="aui-list-item-input">
+                    <input type="text" name="templetName" v-model="templetName" readonly="readonly">
+                </div>
+            </div>
+        </li>
+        <li class="aui-list-item">
+            <div class="aui-list-item-inner">
+                <div class="aui-list-item-label" style="width: 35%;">编码</div>
+                <div class="aui-list-item-input">
+                    <input type="text" name="templetCode" v-model="templetCode" readonly="readonly">
+                </div>
+            </div>
+        </li>
+    </ul>
+</section> -->
+
+<div class="aui-content-padded" onclick="doSave()">
+    <p>
+    <div class="aui-btn aui-btn-info"><i class="aui-input-addon aui-iconfont"></i>保存</div>
+    </p>
+</div>
+
+</body>
+<script type="text/javascript" src="../../script/api.js"></script>
+<script type="text/javascript" charset="utf-8" src="../../script/pda.js"></script>
+<script type="text/javascript" src="../../script/vue.min.js"></script>
+<script type="text/javascript" src="../../script/public/utils.js"></script>
+<script type="text/javascript" src="../../script/public/commons.js"></script>
+<script type="text/javascript" src="../../script/doT.min.js"></script>
+<script src="../../script/jquery-1.8.2.min.js"></script>
+<script type="text/javascript">
+    var clearly;
+    apiready = function () {
+      var privacy = api.require("ble");
+      privacy.initManager(function(ret) {
+        if (ret.state == "poweredOn") {
+          privacy.scan({serviceUUIDs: []}, function(ret,err) {
+            if (ret.status) {
+              clearly = setInterval(function() {
+                privacy.getPeripheral(function(ret) {
+                  if (ret.peripherals.length != 0) {
+                    vueData.printItems = ret.peripherals;
+                    for (var i = 0; i < vueData.printItems.length; i++) {
+                      if(!!vueData.printItems){
+
+                      }else {
+                        vueData.printItems[i].name = vueData.printItems[i].uuid;
+                      }
+                    }
+                  }
+                });
+              }, 1000);
+            }
+          });
+        }else {
+          api.toast({msg: '请开启蓝牙!', location: 'middle'});
+        }
+      })
+    };
+    var vueData = {
+        uuid: '',           // 打印机IP
+        printName: '',
+        printItems: []         // 打印机Ip数组
+    };
+    new Vue({
+        el: '#vue-app',
+        data: vueData,
+        mounted: function () {
+            //挂载时获取区域
+            setTimeout(function () {
+                vueData.uuid = localStorage.getItem('hgzyUuid');
+                vueData.printName = localStorage.getItem('hgzyPrintName');
+            }, 500);
+        },
+        methods: {
+            getPrint: function (event) {
+                var uuid = event.target.value;
+                var printName = $("#selectUuid option:selected").text();
+                vueData.uuid = uuid;
+                vueData.printName = printName;
+            }
+        }
+    });
+
+    var vueData2 = {
+        templetGid: '',           // 打印模板
+        templetCode: '',
+        templetName: '',
+        templetItems: []         // 打印模板数组
+    };
+    new Vue({
+        el: '#vue-app-2',
+        data: vueData2,
+        mounted: function () {
+            //挂载时获取区域
+            setTimeout(function () {
+                vueData2.templetItems = getTemplets();
+
+                vueData2.templetGid = localStorage.getItem('hgzyTempletGid');
+                vueData2.templetCode = localStorage.getItem('hgzyTempletCode');
+                vueData2.templetName = localStorage.getItem('hgzyTempletName');
+            }, 500);
+        },
+        methods: {
+            getTemplet: function (event) {
+                clearInterval(clearly);
+                var itemStr = event.target.value;
+                var temp = itemStr.split('|||');
+                var templetGid = temp[0];
+                var templetCode = temp[1];
+                var templetName = temp[2];
+                vueData2.templetGid = templetGid;
+                vueData2.templetCode = templetCode;
+                vueData2.templetName = templetName;
+            }
+        }
+    });
+
+    function doSave() {
+        localStorage.setItem('hgzyUuid', vueData.uuid);
+        localStorage.setItem('hgzyPrintName', vueData.printName);
+        localStorage.setItem('hgzyTempletGid', vueData2.templetGid);
+        localStorage.setItem('hgzyTempletCode', vueData2.templetCode);
+        localStorage.setItem('hgzyTempletName', vueData2.templetName);
+        var privacy = api.require("ble");
+        console.log(JSON.stringify(vueData.uuid));
+        privacy.connect({peripheralUUID:vueData.uuid},function(ret,err){
+          if(ret.status){
+            console.log(JSON.stringify(ret));
+            var moduleDemo = api.require('moduleDemo');
+            moduleDemo.printData({msg:vueData.uuid + ',2018050120200304'});
+            api.toast({msg: '连接并保存成功！', duration: 3000, location: 'middle'});
+          }
+        })
+    }
+
+</script>
+</html>

@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+    <title>补货</title>
+    <link rel="stylesheet" type="text/css" href="../../../css/api.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/aui.2.0.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/icons.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/bootstrap-table.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../../../css/custom.css">
+    <link rel="stylesheet" type="text/css" href="../../../css/outBound.css">
+    <style>
+    body{
+      background-color: rgb(245,245,245);
+    }
+    #easyLayout{
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      height: 100vh;
+    }
+    .dataIsNone{
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-50%);
+      font-size: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: rgb(139,134,130);
+    }
+    </style>
+</head>
+<body>
+  <div id="easyLayout">
+
+    <div class="dataIsNone" v-if="taskList.length == 0">
+      暂无数据
+    </div>
+
+    <!-- 获取拣选任务单 -->
+    <div class="shipment-easyLayout shipment-easyLayout-active" id="shipment-easyLayout1" v-if="taskList.length != 0">
+
+      <div class="shipment-easyLayout-item"
+      v-for="(item,index) in taskList"
+      :class="{'shipment-easyLayout-item-margin':index != (taskList.length - 1)}"
+      @click="startTask(item)" style="font-size:10px">
+        <p style="width:100%">补货任务单:{{item.code}}</p>
+        <p style="width:100%">补货零拣库位:{{item.details[0].targetWorkCellCode}}</p>
+        <p style="width:100%">补货物料:{{item.details[0].mrlName}}</p>
+        <p style="width:100%">任务创建时间:{{item.taskDate}}</p>
+      </div>
+    </div>
+
+    <div class="shipment-easyLayout" id="shipment-easyLayout2">
+      <form class="aui-content aui-margin-b-10 aui-margin-t-10" id="formSection">
+          <ul class="aui-list aui-form-list">
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">物料名称</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model.trim="replenishment.mrlName" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">物料编码</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model.trim="replenishment.mrlCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <!-- <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">物料类型</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model.trim="replenishment.mrlTypeName" readonly="readonly">
+                    </div>
+                </div>
+            </li> -->
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">规格</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model.trim="replenishment.specification" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">图号</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model.trim="replenishment.drawing" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">单位</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model="replenishment.measureName" readOnly="readOnly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">所需数量</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model.trim="replenishment.remainQty" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">零拣库位</div>
+                    <div class="aui-list-item-input">
+                        <input type="text" v-model.trim="targetWorkCellCode" readonly="readonly">
+                    </div>
+                </div>
+            </li>
+            <li class="aui-list-item">
+                <div class="aui-list-item-inner">
+                    <div class="aui-list-item-label">作业库位</div>
+                    <div class="aui-list-item-input">
+                        <textarea v-html="recWorkCell" readonly="readonly"></textarea>
+                    </div>
+                </div>
+            </li>
+              <li class="aui-list-item">
+                  <div class="aui-list-item-inner">
+                      <div class="aui-list-item-label">来源库位</div>
+                      <div class="aui-list-item-input">
+                          <input type="text" id="tab2-scan-barcode" @keyup.enter="onEnterBarCode"
+                                 v-model.trim="tab2ScanCode"
+                                 placeholder="扫描来源库位条码">
+                      </div>
+                  </div>
+              </li>
+              <li class="aui-list-item">
+                  <div class="aui-list-item-inner">
+                      <div class="aui-list-item-label">来源容器</div>
+                      <div class="aui-list-item-input">
+                          <input type="text" id="tab2-scan-ctBarcode" @keyup.enter="onEnterCtBarcode"
+                                 v-model.trim="ctBarcode"
+                                 placeholder="扫描来源容器条码">
+                      </div>
+                  </div>
+              </li>
+              <li class="aui-list-item">
+                  <div class="aui-list-item-inner">
+                      <div class="aui-list-item-label">批次号</div>
+                      <div class="aui-list-item-input">
+                          <input type="text" id="tab2-scan-barcode2" @keyup.enter="onEnterLotCode"
+                                 v-model.trim="lotCode"
+                                 placeholder="扫描物料批次">
+                      </div>
+                  </div>
+              </li>
+              <li class="aui-list-item">
+                  <div class="aui-list-item-inner">
+                      <div class="aui-list-item-label">库位校验</div>
+                      <div class="aui-list-item-input">
+                          <input type="text" id="tab2-scan-barcode3" @keyup.enter="onEnterCurrentWorkCell"
+                                 v-model.trim="currentCell"
+                                 placeholder="扫描终点库位编码">
+                      </div>
+                  </div>
+              </li>
+            </ul>
+        </form>
+      <table id="bootstrap-tab" style="table-layout: fixed"></table>
+    </div>
+    <footer class="aui-bar aui-bar-tab aui-row" id="footer-2" v-if="vueData.itemShow == 2">
+        <div class="aui-btn aui-col-xs-12 aui-btn-success"  @click="postSubmit">提交</div>
+    </footer>
+  </div>
+</body>
+<script type="text/javascript" src="../../../script/api.js"></script>
+<script type="text/javascript" src="../../../script/aui-tab.js"></script>
+<script type="text/javascript" src="../../../script/aui-toast.js"></script>
+<script type="text/javascript" src="../../../script/aui-dialog.js"></script>
+<script type="text/javascript" src="../../../script/jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="../../../script/vue.min.js"></script>
+<script type="text/javascript" src="../../../script/bootstrap-table.min.js"></script>
+<script type="text/javascript" src="../../../script/bootstrap-table-zh-CN.js"></script>
+<script type="text/javascript" src="../../../script/public/constant.js"></script>
+<script type="text/javascript" src="../../../script/public/utils.js"></script>
+<script type="text/javascript" src="../../../script/public/commons.js"></script>
+<script type="text/javascript">
+    var toast = new auiToast({});
+    var dialog = new auiDialog({});
+    var tableField1 = [
+        {name: 'rowId', title: '序号',width:60},
+        {name: 'workCellCode', title: '来源库位',width:100, sortable: true, order: 'asc'},
+        {name:'ctBarCode',title:'来源容器',},
+        {name:'qty',title:'补货数量',width:80},
+        {name:'id',title:'id',width:80,visible:false},
+        {name:'downTaskCode',title:'补货数量',width:80,visible:false},
+        {name:"lotCode",title:"批次"}
+    ];
+    apiready = function () {
+        api.parseTapmode();
+        initTable(0, tableField1, null, function (row, $element) {
+          dialog.alert({
+              title: "确认删除第" + ($element.data('index') + 1) + "行:吗?",
+              buttons: ['取消', '确定']
+          }, function (ret) {
+              if (ret.buttonIndex == 2) {
+                  // vueData.formData.currentBoxNo--;
+                  vueData.replenishment.allNum -= row.qty;
+                  $("#bootstrap-tab").bootstrapTable('remove', {field: 'rowId', values: [row.rowId]});
+
+              }
+          })
+        });
+
+        var params = {
+          state:5,
+          workCenterCode:localStorage.getItem('workCenterCode'),
+          businessType:38,
+          id:"$filter=state ne 10 and state ne 12",
+        }
+        api.showProgress({
+            style: 'default',
+            animationType: 'fade',
+            title: '努力加载中...',
+            text: '请稍后...',
+            modal: true
+        });
+        $.ajax({
+            type: "POST",
+            url: getUrl('padWmsController!getSuppTasksByParams.m'),
+            dataType: "json",
+            data: {
+              data: JSON.stringify(params),
+            },
+            async: false,
+            success: function (res) {
+                if (res.errCode === 0) {
+                  vueData.taskList = res.data;
+                  vueData.taskList = vueData.taskList.sort(function (a, b) {
+                      return new Date(b.taskDate.replace(/-/g, '/')).getTime() - new Date(a.taskDate.replace(/-/g, '/')).getTime()
+                  });
+                  api.hideProgress();
+                } else {
+                  api.hideProgress();
+                  api.toast({msg: res.msg, duration: 3000, location: 'middle'});
+                }
+            },
+            error: function (e) {
+                api.hideProgress();
+            }
+        });
+    };
+    var vueData = {
+        itemShow:1,//控制显示隐藏
+        taskList:[],//入库单号list
+        code:'',
+        tab2ScanCode:"",//原始容器
+        lotCode:"",//扫描的批次码
+        lotCodeList:[],//扫描容器带出来的批次码数组
+        recWorkCell:"",//推荐库位
+        workCellList:[],//库位集合
+        currentCell:"",//目标库位
+        hasCurrentCell:"",
+        targetWorkCellCode:'',
+        ctBarcode:"",//来源容器
+        willChooseLotCodeList:[],
+        replenishment:{
+          mrlCode:"",
+          mrlName:"",
+          mrlType:"",
+          measureName:"",
+          drawing:"",
+          specification:"",
+          mrlTypeName:"",
+          qty:"",
+          remainQty:"",
+          allNum:0,
+          id:'',
+          currentId:'',
+          lotCode:"",//存储的批次码
+        }
+    };
+    var app = new Vue({
+        el: '#easyLayout',
+        data: vueData,
+        mounted: function () {
+
+        },
+        methods: {
+            startTask:function(item){
+              api.confirm( {
+                  title: '注意',
+                  msg: '是否开始作业？',
+                  buttons: [ '确定', '取消' ]
+              }, function ( ret, err ) {
+                  if ( ret.buttonIndex == 1 ) {
+                    vueData.code = item.code;
+                    api.showProgress({
+                        style: 'default',
+                        animationType: 'fade',
+                        title: '努力加载中...',
+                        text: '请稍后...',
+                        modal: true
+                    });
+                    $.ajax({
+                        type: "POST",
+                        url: getUrl('padWmsController!getSuppTaskByCode.m'),
+                        dataType: "json",
+                        data: {
+                          code:item.code,
+                        },
+                        async: false,
+                        success: function (res) {
+                            if (res.errCode == 0) {
+                              var obj = res.data.details[0];
+                              var replenishment = vueData.replenishment;
+                              replenishment.mrlName = obj.mrlName;
+                              replenishment.mrlCode = obj.mrlCode;
+                              // replenishment.mrlType = obj.mrlType;
+                              // replenishment.mrlTypeName = obj.mrlType == 0 ? '原材料' : '成品';
+                              replenishment.measureName = obj.measureName;
+                              if(obj.downShelfQty == null){
+                                replenishment.remainQty = obj.qty;
+                              }else {
+                                replenishment.remainQty = Number(obj.qty) - Number(obj.downShelfQty);
+                              }
+                              replenishment.drawing = obj.drawing;
+                              replenishment.specification = obj.specification;
+                              replenishment.id = obj.id;
+                              vueData.targetWorkCellCode = obj.targetWorkCellCode;
+                              $('#tab2-scan-barcode').focus();
+                              $.ajax({
+                                  type: "POST",
+                                  url: getUrl('padWmsController!getWorkCellsForSupp.m'),
+                                  dataType: "json",
+                                  data: {
+                                    mrlCode:replenishment.mrlCode
+                                  },
+                                  async: false,
+                                  success: function (ret) {
+                                      if (ret.errCode === 0) {
+                                          if(ret.data.length != 0){
+                                            vueData.lotCodeList = ret.data;
+                                            vueData.workCellList = [];
+                                            for (var i = 0; i < ret.data.length; i++) {
+                                              if(vueData.workCellList.length == 0){
+                                                vueData.workCellList.push({'name':ret.data[i].workCellName,'code':ret.data[i].workCellCode,'id':ret.data[i].id});
+                                              }else {
+                                                var isPush = false;
+                                                for (var a = 0; a < vueData.workCellList.length; a++) {
+                                                  if(vueData.workCellList[a].workCellCode == ret.data[i].workCellCode){
+                                                    ispush = true;
+                                                  }
+                                                }
+                                                if(!isPush){
+                                                  vueData.workCellList.push({'name':ret.data[i].workCellName,'code':ret.data[i].workCellCode,'id':ret.data[i].id});
+                                                }
+                                              }
+                                            }
+                                            vueData.recWorkCell = "";
+                                            for (var i = 0; i < vueData.workCellList.length; i++) {
+                                              vueData.recWorkCell += (vueData.workCellList[i].name + '\n')
+                                            }
+                                          }else {
+                                            return api.alert({
+                                                title: '警告',
+                                                msg: "其他库位暂无该物料的库存信息！",
+                                            });
+                                          }
+                                      }
+                                  },
+                              });
+                            } else {
+                                api.hideProgress();
+                                api.toast({msg: res.msg, duration: 3000, location: 'middle'});
+                            }
+                        },
+                        error: function (e) {
+                            api.hideProgress();
+                        }
+                    });
+                    api.hideProgress();
+                    vueData.itemShow += 1 ;
+                    $('.shipment-easyLayout').removeClass('shipment-easyLayout-active');
+                    $('#shipment-easyLayout' + vueData.itemShow).addClass('shipment-easyLayout-active');
+                  }
+              } )
+            },
+            //扫描托盘条码
+            onEnterBarCode:function(){
+              var barCode = vueData.tab2ScanCode;
+              var isExist = false;
+              for (var i = 0; i < vueData.workCellList.length; i++) {
+                if(vueData.workCellList[i].code == barCode){
+                  vueData.replenishment.currentId = vueData.workCellList[i].id;
+                  isExist = true ;
+                }
+              }
+              if(!isExist){
+                vueData.tab2ScanCode = "";
+                $('#tab2-scan-barcode').focus();
+                return api.alert({
+                    title: '警告',
+                    msg: "该库位不在推荐库位中，请扫描!",
+                });
+              }
+              var retObj = getCtByWorkCellCode(vueData.tab2ScanCode);
+              if(JSON.stringify(retObj) != {}){
+                if(retObj.length == 1){
+                  $('#tab2-scan-ctBarcode').focus();
+                }else {
+                  vueData.tab2ScanCode = "";
+                  $('#tab2-scan-barcode').focus();
+                  return api.toast({msg: "当前扫描库位不止存放一个顶层容器;", duration: 3000, location: 'middle'});
+                }
+              }
+            },
+            onEnterCtBarcode:function(){
+              if(vueData.tab2ScanCode == ""){
+                vueData.ctBarcode = "";
+                $('#tab2-scan-barcode').focus();
+                return api.toast({msg: "请先扫描来源库位;", duration: 3000, location: 'middle'});
+              }
+              var retObj = getCtUwmInfoByCtBarCode(vueData.ctBarcode);
+              var retObj2 = getNextChildContent(vueData.ctBarcode);
+              console.log(JSON.stringify(retObj2));
+
+              if(JSON.stringify(retObj) != {}){
+                if(retObj.workCellCode == vueData.tab2ScanCode){
+                  if(JSON.stringify(retObj2) != {} && retObj2.length != 0){
+                    for (var i = 0; i < retObj2.length; i++) {
+                      if(!!retObj2[i].lotCode){
+                        vueData.willChooseLotCodeList.push(retObj2[i].lotCode)
+                      }
+                    }
+                    if(vueData.willChooseLotCodeList.length == 0){
+                      vueData.ctBarcode = "";
+                      $('#tab2-scan-ctBarcode').focus();
+                      return api.toast({msg: "来源容器存在子容器，请扫描子容器条码!;", duration: 3000, location: 'middle'});
+                    }else {
+                      $('#tab2-scan-barcode2').focus();
+                    }
+                  }else {
+                    vueData.ctBarcode = "";
+                    $('#tab2-scan-ctBarcode').focus();
+                    return api.toast({msg: "来源容器内无物料或者容器!", duration: 3000, location: 'middle'});
+                  }
+                }else {
+                  vueData.ctBarcode = "";
+                  $('#tab2-scan-ctBarcode').focus();
+                  return api.toast({msg: "来源容器不在已扫描来源库位上，请重新扫描!", duration: 3000, location: 'middle'});
+                }
+              }
+            },
+            onEnterLotCode:function(){
+              if(vueData.ctBarcode == ""){
+                vueData.lotCode = "";
+                $('#tab2-scan-ctBarcode').focus();
+                return api.toast({msg: "请先扫描来源容器;", duration: 3000, location: 'middle'});
+              }
+              var isExist = false;
+              var isAlive = true;
+              for (var i = 0; i < vueData.lotCodeList.length; i++) {
+                if(vueData.lotCode == vueData.lotCodeList[i].lotCode){
+                  isExist = true;
+                }
+              }
+              if(!isExist){
+                vueData.lotCode = "";
+                $('#tab2-scan-barcode2').focus();
+                return api.alert({
+                    title: '警告',
+                    msg: "批次条码不在当前扫描库位中，请重新选择扫描！",
+                });
+              }
+              for (var i = 0; i < vueData.willChooseLotCodeList.length; i++) {
+                if(vueData.lotCode == vueData.willChooseLotCodeList[i]){
+                  isAlive = true;
+                }
+              }
+              if(!isAlive){
+                vueData.lotCode = "";
+                $('#tab2-scan-barcode2').focus();
+                return api.alert({
+                    title: '警告',
+                    msg: "批次条码不在当前来源容器中，请重新选择扫描！",
+                });
+              }
+              vueData.replenishment.qty = 0
+              dialog.prompt({
+                  title: "请输入物料数量",
+                  value: vueData.replenishment.qty,
+                  text: '',
+                  buttons: ['取消', '确定']
+              }, function (ret) {
+                  if ((ret.text == '' || ret.text == undefined || ret.text == null) && ret.buttonIndex == 2) {
+                      api.toast({msg: '请输入数量!', duration: 3000, location: 'middle'});
+                  }else if(!!ret.text && ret.buttonIndex == 2){
+                      if(Number(ret.text) > Number(vueData.replenishment.remainQty) || (Number(ret.text) + Number(vueData.replenishment.allNum) > Number(vueData.replenishment.remainQty))){
+                        return api.alert({
+                            title: '警告',
+                            msg: "补货数量大于需要数量，请重新填写！",
+                        });
+                      }
+                      vueData.replenishment.qty = ret.text;
+                      var tableData = $('#bootstrap-tab').bootstrapTable('getData');
+                      insertDateAtTable(0, 'prepend', [{
+                          workCellCode:vueData.tab2ScanCode,
+                          ctBarCode:vueData.ctBarcode,
+                          downTaskCode:vueData.code,
+                          lotCode:vueData.lotCode,
+                          qty:vueData.replenishment.qty,
+                          id:vueData.replenishment.currentId,
+                          rowId:tableData.length + 1,
+                      }]);
+                      vueData.tab2ScanCode = "";
+                      vueData.qty = "";
+                      vueData.ctBarcode = "";
+                      vueData.lotCode = "";
+                  }
+              });
+            },
+            onEnterCurrentWorkCell:function(){
+                if(vueData.currentCell != vueData.targetWorkCellCode){
+                  return api.alert({
+                      title: '警告',
+                      msg: "扫描的库位与实际零拣库位不符，请检查后重新扫描！",
+                  });
+                }
+                api.toast({msg: "校验成功，请提交!;", duration: 3000, location: 'middle'});
+            },
+            //提交
+            postSubmit:function(){
+              if(vueData.currentCell == ""){
+                return api.alert({
+                    title: '警告',
+                    msg: "零拣库位未检验，请扫描校验后提交！",
+                });
+              }
+              var tableData = $('#bootstrap-tab').bootstrapTable('getData');
+              var postArr = [];
+              for (var i = 0; i < tableData.length; i++) {
+                postArr.push({
+                  mrlCode:vueData.replenishment.mrlCode,
+                  lotCode:tableData[i].lotCode,
+                  qty:tableData[i].qty,
+                  source:tableData[i].ctBarCode,
+                  ctBarcode:tableData[i].ctBarCode,
+                  sourceWorkCellCode:tableData[i].workCellCode,
+                  targetWorkCellCode:vueData.targetWorkCellCode,
+                  targetCtBarcode:''
+                })
+              }
+              api.showProgress({
+                  style: 'default',
+                  animationType: 'fade',
+                  title: '努力加载中...',
+                  text: '请稍后...',
+                  modal: true
+              });
+              $.ajax({
+                  type: "POST",
+                  url: getUrl('padWmsController!entireSuppCreateDownBill.m'),
+                  dataType: "json",
+                  data: {
+                    suppTaskCode:vueData.code,
+                    details:JSON.stringify(postArr),
+                    workCenterCode:localStorage.getItem("workCenterCode")
+                  },
+                  async: false,
+                  success: function (res) {
+                      if (res.errCode === 0) {
+                        toast.success({
+                            title: '提交成功!',
+                            duration: 2000
+                        });
+                        window.location.reload();
+                      } else {
+                          api.hideProgress();
+                          api.toast({msg: res.msg, duration: 3000, location: 'middle'});
+                      }
+                  },
+                  error: function (e) {
+                      api.hideProgress();
+                  }
+
+              });
+            },
+
+            //获取库位信息
+            SearchWorkCell:function(){
+
+            }
+        }
+    });
+</script>
+
+</html>
